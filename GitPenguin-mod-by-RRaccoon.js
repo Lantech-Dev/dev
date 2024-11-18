@@ -81,23 +81,39 @@
 
     async getFileContents({ FILE, REPO, NAME, TOKEN }) {
       const apiUrl = `https://api.github.com/repos/${NAME}/${REPO}/contents/${FILE}`;
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `token ${TOKEN}`
+      
+      // Запрос с токеном, если токен передан
+      if (TOKEN && TOKEN !== "") {
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `token ${TOKEN}`
+          }
+        });
+
+        status = response.status;
+        if (!response.ok) {
+          console.error(`Error: ${status}`);
+          return '';
         }
-      });
 
-      status = response.status;
-      if (!response.ok) {
-        console.error(`Error: ${status}`);
-        return;
+        const data = await response.json();
+        const content = atob(data.content);
+        return content;
+
+      } else {
+        // Запрос без токена
+        const response = await Scratch.fetch(apiUrl);
+        const data = await response.json();
+        status = response.status;
+        
+        if (response.ok) {
+          return atob(data.content);
+        } else {
+          return '';
+        }
       }
-
-      const data = await response.json();
-      const content = atob(data.content); // Декодируем содержимое, если оно в base64
-      return content;
     }
 
     async createFile({ FILE, CONTENT, REPO, NAME, TOKEN }) {
